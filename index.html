@@ -1,3 +1,26 @@
+// Tu URL del botón "Raw" del Gist
+const URL_JSON = "https://gist.githubusercontent.com/prusianking/cd60eda2954d65c35be9c29f312f9a0d/raw/c4a73fd1b5f7bd40a8bd3013e49f7db1c6b55da8/config.json";
+
+async function cargarConfiguracion() {
+    try {
+        const respuesta = await fetch(URL_JSON);
+        const data = await respuesta.json();
+        
+        console.log("Configuración cargada:", data);
+        // Aquí llamas a la función que ya tengas para aplicar los cambios
+        aplicarTuLogica(data); 
+        
+    } catch (error) {
+        console.error("Error al obtener el JSON:", error);
+    }
+}
+
+// Ejecutar al cargar la página
+window.onload = cargarConfiguracion;
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
