@@ -1,53 +1,98 @@
-<div style="padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin: 20px;">
-    <h3>Sincronización JSON (Gist)</h3>
-    <p id="status">Estado: Esperando...</p>
-    <button id="btnCargar" style="padding: 10px; cursor: pointer;">
-        🔄 Sincronizar ahora
-    </button>
+<div style="padding: 20px; border: 1px solid #444; border-radius: 10px; background: #f9f9f9; max-width: 400px; font-family: sans-serif;">
+    <h4 style="margin-top: 0;">Sincronización Universal</h4>
+    <p id="status-text" style="font-size: 0.9em; color: #666;">Estado: Listo</p>
+    
+    <div style="display: flex; gap: 10px;">
+        <button id="btnDescargar" style="background: #e1e1e1; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px;">
+            📥 Bajar de Nube
+        </button>
+        <button id="btnSubir" style="background: #2ea44f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; font-weight: bold;">
+            📤 Subir a Nube
+        </button>
+    </div>
 </div>
 
 <script>
-    // 1. SUSTITUYE ESTO POR TU URL "RAW" DEL GIST
-    const URL_GIST_RAW = "https://gist.githubusercontent.com/prusianking/cd60eda2954d65c35be9c29f312f9a0d/raw/c4a73fd1b5f7bd40a8bd3013e49f7db1c6b55da8/config.json";
+    // --- 1. CONFIGURACIÓN (RELLENA ESTO) ---
+    const CONFIG_GIST = {
+        ID: "cd60eda2954d65c35be9c29f312f9a0d", // El código largo de la URL de tu Gist
+        TOKEN: "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", // Tu token de acceso personal
+        ARCHIVO: "config.json"
+    };
 
-    // Función principal para obtener los datos
-    async function obtenerConfiguracion() {
-        const statusEl = document.getElementById('status');
-        statusEl.innerText = "Estado: Cargando datos...";
-        statusEl.style.color = "orange";
-
+    // --- 2. FUNCIÓN PARA BAJAR DATOS (DOWNLOAD) ---
+    async function bajarConfiguracion() {
+        actualizarEstado("Bajando datos...", "orange");
         try {
-            // Añadimos un parámetro de tiempo para evitar que el navegador use una versión vieja (caché)
-            const respuesta = await fetch(`${URL_GIST_RAW}?t=${new Date().getTime()}`);
+            // Usamos la URL raw con un timestamp para evitar caché
+            const url = `https://gist.githubusercontent.com/${CONFIG_GIST.ID}/raw/${CONFIG_GIST.ARCHIVO}?t=${new Date().getTime()}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error();
             
-            if (!respuesta.ok) throw new Error("No se pudo conectar con el Gist");
+            const datos = await res.json();
+            
+            // AQUÍ: Llama a tu función que aplica los datos a la App
+            console.log("Datos recibidos:", datos);
+            if(window.aplicarCambiosApp) aplicarCambiosApp(datos); 
 
-            const datos = await respuesta.json();
-            
-            // 2. AQUÍ ES DONDE APLICAS TU LÓGICA
-            // Por ejemplo, si tu JSON tiene un color de fondo:
-            // document.body.style.backgroundColor = datos.colorFondo;
-            
-            console.log("Datos sincronizados:", datos);
-            
-            statusEl.innerText = "Estado: ✅ Sincronizado correctamente";
-            statusEl.style.color = "green";
-
-            // Si tienes una función que ya procesa el JSON, llámala aquí:
-            // miFuncionDeProcesar(datos);
-
-        } catch (error) {
-            console.error("Error:", error);
-            statusEl.innerText = "Estado: ❌ Error al sincronizar";
-            statusEl.style.color = "red";
+            actualizarEstado("✅ Datos actualizados", "green");
+        } catch (e) {
+            actualizarEstado("❌ Error al bajar datos", "red");
         }
     }
 
-    // Escuchar el click del botón
-    document.getElementById('btnCargar').addEventListener('click', obtenerConfiguracion);
+    // --- 3. FUNCIÓN PARA SUBIR DATOS (UPLOAD) ---
+    async function subirConfiguracion() {
+        actualizarEstado("Subiendo a GitHub...", "blue");
+        
+        // AQUÍ: Recoge los datos actuales de tu app para enviarlos
+        // Ejemplo: const datosApp = { tema: 'oscuro', volumen: 50 };
+        const datosParaSubir = obtenerDatosActualesDeMiApp(); 
 
-    // Cargar automáticamente al abrir la app
-    window.addEventListener('load', obtenerConfiguracion);
+        try {
+            const url = `https://api.github.com/gists/${CONFIG_GIST.ID}`;
+            const res = await fetch(url, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": `Bearer ${CONFIG_GIST.TOKEN}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    files: {
+                        [CONFIG_GIST.ARCHIVO]: {
+                            content: JSON.stringify(datosParaSubir, null, 2)
+                        }
+                    }
+                })
+            });
+
+            if (!res.ok) throw new Error();
+            actualizarEstado("✅ ¡Guardado en GitHub!", "green");
+        } catch (e) {
+            actualizarEstado("❌ Error al subir", "red");
+        }
+    }
+
+    // --- FUNCIONES AUXILIARES ---
+    function actualizarEstado(texto, color) {
+        const el = document.getElementById('status-text');
+        el.innerText = `Estado: ${texto}`;
+        el.style.color = color;
+    }
+
+    // Esta función debes adaptarla a cómo guardas tus variables
+    function obtenerDatosActualesDeMiApp() {
+        // Ejemplo: Si tienes un objeto global con tu config, devuélvelo aquí
+        // return miConfiguracionGlobal;
+        return { ultima_actualizacion: new Date().toISOString(), ejemplo: "datos" };
+    }
+
+    // Eventos de los botones
+    document.getElementById('btnDescargar').onclick = bajarConfiguracion;
+    document.getElementById('btnSubir').onclick = subirConfiguracion;
+
+    // Cargar automáticamente al entrar
+    window.onload = bajarConfiguracion;
 </script>
 
 
