@@ -1,27 +1,67 @@
+<div style="padding: 20px; border: 1px solid #444; border-radius: 10px; background: #f9f9f9; max-width: 400px; font-family: sans-serif; color: #333;">
+    <h4 style="margin-top: 0;">Sincronización Universal</h4>
+    <p id="status-text" style="font-size: 0.9em; color: #666;">Estado: Listo</p>
+    
+    <div style="display: flex; gap: 10px;">
+        <button id="btnDescargar" style="background: #e1e1e1; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px;">📥 Bajar de Nube</button>
+        <button id="btnSubir" style="background: #2ea44f; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; font-weight: bold;">📤 Subir a Nube</button>
+    </div>
+</div>
+
 <script>
+    // --- 1. CONFIGURACIÓN (REVISA ESTO BIEN) ---
     const CONFIG_GIST = {
-        ID: "cd60eda2954d65c35be9c29f312f9a0d", 
-        TOKEN: "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",
-        ARCHIVO: "config.json"
+        ID: "cd60eda2954d65c35be9c29f312f9a0d",        // Solo el código de letras/números de la URL
+        TOKEN: "bllkXJYhZMHKmu3XlNG6cHxA8kDOtv0Iy7nF",  // Debe ser el 'ghp_...' o 'github_pat_...'
+        ARCHIVO: "config.json"   // Nombre exacto del archivo dentro del Gist
     };
 
-    async function sincronizarTodo() {
-        console.log("Iniciando sincronización...");
+    function actualizarEstado(texto, color) {
+        const el = document.getElementById('status-text');
+        el.innerText = `Estado: ${texto}`;
+        el.style.color = color;
+    }
+
+    // --- 2. FUNCIÓN PARA BAJAR DATOS (DOWNLOAD) ---
+    async function bajarConfiguracion() {
+        actualizarEstado("Bajando datos...", "orange");
+        try {
+            // Usamos la API de Gists que es más segura que la URL raw
+            const res = await fetch(`https://api.github.com/gists/${CONFIG_GIST.ID}`, {
+                headers: { "Authorization": `token ${CONFIG_GIST.TOKEN}` }
+            });
+            
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            
+            const gistData = await res.json();
+            const contenido = gistData.files[CONFIG_GIST.ARCHIVO].content;
+            const datos = JSON.parse(contenido);
+            
+            console.log("Datos recibidos:", datos);
+            
+            // Si tienes una función para aplicar cambios, llámala aquí
+            if(window.aplicarCambiosApp) window.aplicarCambiosApp(datos); 
+
+            actualizarEstado("✅ Datos actualizados", "green");
+        } catch (e) {
+            console.error(e);
+            actualizarEstado("❌ Error al bajar datos (Revisa ID/Token)", "red");
+        }
+    }
+
+    // --- 3. FUNCIÓN PARA SUBIR DATOS (UPLOAD) ---
+    async function subirConfiguracion() {
+        actualizarEstado("Subiendo a GitHub...", "blue");
         
-        // 1. OBTENER DATOS ACTUALES (Para subir)
-        const datosParaSubir = { 
-            ultima_vez: new Date().toLocaleString(),
-            ejemplo: "Funciona correctamente" 
-        };
+        // Aquí obtienes los datos de tu app
+        const datosParaSubir = obtenerDatosActualesDeMiApp(); 
 
         try {
             const url = `https://api.github.com/gists/${CONFIG_GIST.ID}`;
-            
-            const respuesta = await fetch(url, {
+            const res = await fetch(url, {
                 method: "PATCH",
                 headers: {
-                    "Authorization": `token ${CONFIG_GIST.TOKEN}`, // Usar 'token' en lugar de 'Bearer' a veces ayuda
-                    "Accept": "application/vnd.github.v3+json",
+                    "Authorization": `token ${CONFIG_GIST.TOKEN}`, // Cambiado 'Bearer' por 'token'
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
@@ -33,18 +73,26 @@
                 })
             });
 
-            if (!respuesta.ok) {
-                const errorData = await respuesta.json();
-                console.error("Detalle del error de GitHub:", errorData);
-                throw new Error(`Error ${respuesta.status}: ${errorData.message}`);
-            }
-
-            alert("✅ ¡Sincronizado con éxito!");
-        } catch (err) {
-            alert("❌ Error: " + err.message);
-            console.error(err);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            actualizarEstado("✅ ¡Guardado en GitHub!", "green");
+        } catch (e) {
+            console.error(e);
+            actualizarEstado("❌ Error al subir", "red");
         }
     }
+
+    function obtenerDatosActualesDeMiApp() {
+        // Devuelve aquí lo que quieras guardar
+        return { 
+            ultima_actualizacion: new Date().toLocaleString(),
+            plataforma: navigator.userAgent.includes("Mobi") ? "Móvil" : "PC"
+        };
+    }
+
+    document.getElementById('btnDescargar').onclick = bajarConfiguracion;
+    document.getElementById('btnSubir').onclick = subirConfiguracion;
+
+    window.onload = bajarConfiguracion;
 </script>
 
 
