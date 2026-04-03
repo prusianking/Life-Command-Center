@@ -1,22 +1,54 @@
-// Tu URL del botón "Raw" del Gist
-const URL_JSON = "https://gist.githubusercontent.com/prusianking/cd60eda2954d65c35be9c29f312f9a0d/raw/c4a73fd1b5f7bd40a8bd3013e49f7db1c6b55da8/config.json";
+<div style="padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin: 20px;">
+    <h3>Sincronización JSON (Gist)</h3>
+    <p id="status">Estado: Esperando...</p>
+    <button id="btnCargar" style="padding: 10px; cursor: pointer;">
+        🔄 Sincronizar ahora
+    </button>
+</div>
 
-async function cargarConfiguracion() {
-    try {
-        const respuesta = await fetch(URL_JSON);
-        const data = await respuesta.json();
-        
-        console.log("Configuración cargada:", data);
-        // Aquí llamas a la función que ya tengas para aplicar los cambios
-        aplicarTuLogica(data); 
-        
-    } catch (error) {
-        console.error("Error al obtener el JSON:", error);
+<script>
+    // 1. SUSTITUYE ESTO POR TU URL "RAW" DEL GIST
+    const URL_GIST_RAW = "https://gist.githubusercontent.com/tu-usuario/tu-id-del-gist/raw/config.json";
+
+    // Función principal para obtener los datos
+    async function obtenerConfiguracion() {
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = "Estado: Cargando datos...";
+        statusEl.style.color = "orange";
+
+        try {
+            // Añadimos un parámetro de tiempo para evitar que el navegador use una versión vieja (caché)
+            const respuesta = await fetch(`${URL_GIST_RAW}?t=${new Date().getTime()}`);
+            
+            if (!respuesta.ok) throw new Error("No se pudo conectar con el Gist");
+
+            const datos = await respuesta.json();
+            
+            // 2. AQUÍ ES DONDE APLICAS TU LÓGICA
+            // Por ejemplo, si tu JSON tiene un color de fondo:
+            // document.body.style.backgroundColor = datos.colorFondo;
+            
+            console.log("Datos sincronizados:", datos);
+            
+            statusEl.innerText = "Estado: ✅ Sincronizado correctamente";
+            statusEl.style.color = "green";
+
+            // Si tienes una función que ya procesa el JSON, llámala aquí:
+            // miFuncionDeProcesar(datos);
+
+        } catch (error) {
+            console.error("Error:", error);
+            statusEl.innerText = "Estado: ❌ Error al sincronizar";
+            statusEl.style.color = "red";
+        }
     }
-}
 
-// Ejecutar al cargar la página
-window.onload = cargarConfiguracion;
+    // Escuchar el click del botón
+    document.getElementById('btnCargar').addEventListener('click', obtenerConfiguracion);
+
+    // Cargar automáticamente al abrir la app
+    window.addEventListener('load', obtenerConfiguracion);
+</script>
 
 
 
